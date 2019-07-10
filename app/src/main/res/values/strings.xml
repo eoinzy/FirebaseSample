@@ -1,0 +1,24 @@
+<resources>
+    <!--General-->
+    <string name="app_name">FirebaseSample</string>
+
+    <!--Login/Register-->
+    <string name="title_activity_login">Sign in</string>
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Sign In</string>
+    <string name="action_register">Register</string>
+    <string name="invalid_username">Not a valid username</string>
+    <string name="invalid_password">Password must be >5 characters</string>
+    <string name="login_failed">Login failed</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="click_to_register">Not signed up yet? Click here to <u>REGISTER</u></string>
+    <string name="click_to_sign_in">Already registered? Click here to <u>SIGN IN</u></string>
+
+    <!--Main Screen-->
+    <string name="logout">Logout</string>>
+
+
+
+</resources>
