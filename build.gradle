@@ -8,7 +8,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.4.2'
-        classpath 'com.google.gms:google-services:4.2.0'
+        classpath 'com.google.gms:google-services:4.3.0'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -31,7 +31,7 @@ task clean(type: Delete) {
 ext {
     // Sdk and tools
     // Support library and architecture components support minSdk 15 and above.
-    minSdkVersion = 16
+    minSdkVersion = 17
     targetSdkVersion = 29
     compileSdkVersion = 29
     buildToolsVersion = '29.0.0'
@@ -44,6 +44,7 @@ ext {
     firebaseVersion = '18.0.0'
     retrofitVersion = '2.4.0'
     picassoVersion = '2.71828'
+    gsonVersion = '2.8.5'
 
     //Test
     junitVersion = '4.12'

@@ -49,31 +49,31 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="Are you dead?"
+                    android:text="@string/question_one"
                     android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
                 <RadioGroup
-                    android:id="@+id/form_option_dead"
+                    android:id="@+id/form_option_one"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="end"
                     android:orientation="horizontal">
 
                     <RadioButton
-                        android:id="@+id/form_option_dead_yes"
+                        android:id="@+id/form_option_one_yes"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="YES" />
 
                     <RadioButton
-                        android:id="@+id/form_option_dead_no"
+                        android:id="@+id/form_option_one_no"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="NO" />
                 </RadioGroup>
 
                 <EditText
-                    android:id="@+id/form_explain_dead"
+                    android:id="@+id/form_reason_one"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:visibility="gone" />
@@ -81,31 +81,31 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="Do you have a cat?"
+                    android:text="@string/question_two"
                     android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
                 <RadioGroup
-                    android:id="@+id/form_option_cat"
+                    android:id="@+id/form_option_two"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="end"
                     android:orientation="horizontal">
 
                     <RadioButton
-                        android:id="@+id/form_option_cat_yes"
+                        android:id="@+id/form_option_two_yes"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="YES" />
 
                     <RadioButton
-                        android:id="@+id/form_option_cat_no"
+                        android:id="@+id/form_option_two_no"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="NO" />
                 </RadioGroup>
 
                 <EditText
-                    android:id="@+id/form_explain_cat"
+                    android:id="@+id/form_reason_two"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:visibility="gone" />

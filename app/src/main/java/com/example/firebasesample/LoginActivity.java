@@ -10,14 +10,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.example.firebasesample.data.FirebaseHandler;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,12 +25,16 @@ import java.util.Locale;
 public class LoginActivity extends AppCompatActivity {
     private final static String TAG = LoginActivity.class.getSimpleName();
 
-    private EditText mUsernameView;
-    private EditText mPasswordView;
+    private EditText mLoginUsernameView;
+    private EditText mLoginPasswordView;
+
+    private EditText mRegisterFirstNameView;
+    private EditText mRegisterLastNameView;
+    private EditText mRegisterUsernameView;
+    private EditText mRegisterPasswordView;
 
     private static final int PASSWORD_MIN_LENGTH = 5;
     private static final String TIME_FORMAT = "ddMMyyHHmmss";
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,38 +42,44 @@ public class LoginActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_login);
 
-        //Enable offline caching of Firebase data
-        FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+        //Do a quick check to see if the user is logged in.
+        FirebaseHandler fbh = new FirebaseHandler();
+        if (fbh.isUserLoggedIn()) {
+            launchProfileScreen();
+        }
 
-        mUsernameView = findViewById(R.id.login_username);
-        mPasswordView = findViewById(R.id.login_password);
+        //Setup login views
+        mLoginUsernameView = findViewById(R.id.login_username);
+        mLoginPasswordView = findViewById(R.id.login_password);
 
         Button signInButton = findViewById(R.id.btn_login);
         signInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptLogin(mUsernameView.getText().toString(), mPasswordView.getText().toString());
+                attemptLogin(mLoginUsernameView.getText().toString(), mLoginPasswordView.getText().toString());
             }
         });
+
+        //Setup register views
+        mRegisterFirstNameView = findViewById(R.id.register_first_name);
+        mRegisterLastNameView = findViewById(R.id.register_last_name);
+        mRegisterUsernameView = findViewById(R.id.register_email);
+        mRegisterPasswordView = findViewById(R.id.register_password);
 
         Button registerButton = findViewById(R.id.btn_register);
         registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                EditText registerFirstName = findViewById(R.id.register_first_name);
-                EditText registerLastName = findViewById(R.id.register_last_name);
-                EditText registerEmail = findViewById(R.id.register_email);
-                EditText registerPassword = findViewById(R.id.register_password);
-                attemptRegistration(registerFirstName.getText().toString(),
-                        registerLastName.getText().toString(),
-                        registerEmail.getText().toString(),
-                        registerPassword.getText().toString());
+                attemptRegistration(mRegisterFirstNameView.getText().toString(),
+                        mRegisterLastNameView.getText().toString(),
+                        mRegisterUsernameView.getText().toString(),
+                        mRegisterPasswordView.getText().toString());
             }
         });
     }
 
     private void attemptLogin(final String username, final String password) {
-        clearLoginErrors();
+        clearFormErrors();
         showLoginProgress(true);
 
         if (isUsernameValid(username) && isPasswordValid(password)) {
@@ -81,48 +90,63 @@ public class LoginActivity extends AppCompatActivity {
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             showLoginProgress(false);
                             if (task.isSuccessful()) {
-                                FirebaseDatabase database = FirebaseDatabase.getInstance();
-                                DatabaseReference myRef = database.getReference();
                                 FirebaseUser currentUser = mAuth.getCurrentUser();
-                                myRef.child("Users").child(currentUser.getUid()).child("profile").child("last_login").setValue(getCurrentTimeStamp());
-                                Intent i = new Intent(LoginActivity.this, MainActivity.class);
-                                startActivity(i);
+                                FirebaseHandler fbHandler = new FirebaseHandler();
+                                fbHandler.getLastLogin(currentUser.getUid()).setValue(getCurrentTimeStamp());
+
+                                launchProfileScreen();
                             } else {
                                 Log.e(TAG, "Error logging in", task.getException());
-                                //TODO: Show error
-                                Snackbar.make(mPasswordView, task.getException().getLocalizedMessage(), Snackbar.LENGTH_LONG).show();
+                                Snackbar.make(mLoginPasswordView, task.getException().getLocalizedMessage(), Snackbar.LENGTH_LONG).show();
                             }
                         }
                     });
         } else {
-            //TODO: Handle user/pass error
+            showLoginProgress(false);
+            Log.e(TAG, "Error logging in with username or password");
+            Snackbar.make(mLoginPasswordView, "Error logging in with username or password", Snackbar.LENGTH_LONG).show();
         }
     }
 
+    private void launchProfileScreen() {
+        Intent i = new Intent(LoginActivity.this, ProfileActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
+        finish();
+    }
+
     private void attemptRegistration(final String firstName, final String lastName, final String email, final String password) {
+        clearFormErrors();
+        showRegisterProgress(true);
+
         if (isUsernameValid(email) && isPasswordValid(password)) {
             final FirebaseAuth mAuth = FirebaseAuth.getInstance();
             mAuth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
-                            if(task.isSuccessful()) {
-                                FirebaseDatabase database = FirebaseDatabase.getInstance();
-                                DatabaseReference myRef = database.getReference();
+                            showRegisterProgress(false);
+                            if (task.isSuccessful()) {
                                 FirebaseUser currentUser = mAuth.getCurrentUser();
-                                Log.d(TAG, "CurrentUser: " + currentUser.getUid() + "::" + currentUser.getEmail());
-                                myRef.child("Users").child(currentUser.getUid()).child("profile").child("email").setValue(currentUser.getEmail());
-                                myRef.child("Users").child(currentUser.getUid()).child("profile").child("first_name").setValue(firstName);
-                                myRef.child("Users").child(currentUser.getUid()).child("profile").child("last_name").setValue(lastName);
-                                myRef.child("Users").child(currentUser.getUid()).child("profile").child("last_login").setValue(getCurrentTimeStamp());
 
-                                Intent i = new Intent(LoginActivity.this, MainActivity.class);
-                                startActivity(i);
+                                FirebaseHandler firebaseHandler = new FirebaseHandler();
+                                firebaseHandler.getProfileEmail(currentUser.getUid()).setValue(currentUser.getEmail());
+                                firebaseHandler.getFirstName(currentUser.getUid()).setValue(firstName);
+                                firebaseHandler.getLastName(currentUser.getUid()).setValue(lastName);
+                                firebaseHandler.getLastLogin(currentUser.getUid()).setValue(getCurrentTimeStamp());
+
+                                launchProfileScreen();
                             } else {
-                                //TODO: Handle registration error
+                                Log.e(TAG, "Error in user registration", task.getException());
+                                Snackbar.make(mRegisterUsernameView, "Registration Error: " + task.getException().getLocalizedMessage(), Snackbar.LENGTH_LONG).show();
                             }
                         }
                     });
+        } else {
+            showRegisterProgress(false);
+            Log.e(TAG, "Error registering with username or password");
+            Snackbar.make(mRegisterUsernameView, "Error registering with username or password", Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -131,19 +155,40 @@ public class LoginActivity extends AppCompatActivity {
         return dateFormat.format(new Date());
     }
 
+    /**
+     * Basic check that the username isn't empty. Should throw in a MIN_LENGTH as well as
+     * checking to make sure its a proper email address.
+     *
+     * @param username The username to validate
+     * @return True if valid, false otherwise.
+     */
     private boolean isUsernameValid(String username) {
-        //TODO: Replace this with proper logic
         return null != username && !username.isEmpty();
     }
 
+    /**
+     * Checks to see if the password is valid.
+     * here, we just check that it is greater than an arbitrary length.
+     * We can check if its got the required number of uppercase, special chars later...
+     *
+     * @param password The password to validate
+     * @return True if valid, false otherwise.
+     */
     private boolean isPasswordValid(String password) {
-        //TODO: Replace this with proper logic
         return password.length() >= PASSWORD_MIN_LENGTH;
     }
 
-    private void clearLoginErrors() {
-        mUsernameView.setError(null);
-        mPasswordView.setError(null);
+    /**
+     * When there is no error, we can clear all errors.
+     * It doesn't matter if it's the login screen or register screen, so just reset everything.
+     */
+    private void clearFormErrors() {
+        mLoginUsernameView.setError(null);
+        mLoginPasswordView.setError(null);
+        mRegisterFirstNameView.setError(null);
+        mRegisterLastNameView.setError(null);
+        mRegisterUsernameView.setError(null);
+        mRegisterPasswordView.setError(null);
     }
 
     /**

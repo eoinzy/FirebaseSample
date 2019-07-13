@@ -1,10 +1,5 @@
 package com.example.firebasesample;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,8 +13,6 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -27,13 +20,22 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
+import com.example.firebasesample.data.FirebaseHandler;
+import com.example.firebasesample.util.Utils;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -47,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
     private final static String TAG = MainActivity.class.getSimpleName();
 
     private ImageView mUserImage;
+
+    private static final int READ_IMAGE_CODE = 234;
+    private static final int PICK_IMAGE_CODE = 342;
 
     private static final String TIME_FORMAT = "ddMMyyHHmmss";
 
@@ -70,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         setupForm();
-
     }
 
     public void saveData(View view) {
@@ -79,29 +83,31 @@ public class MainActivity extends AppCompatActivity {
 
     private void storeDataInFirebase() {
         //Get checkbox data
-        RadioGroup deadOption = findViewById(R.id.form_option_dead);
-        int deadId = deadOption.getCheckedRadioButtonId();
-        RadioButton deadAnswer = findViewById(deadId);
-        deadAnswer.getText();
-        EditText deadExplain = findViewById(R.id.form_explain_dead);
-        String deadText = deadExplain.getText().toString();
+        RadioGroup firstOption = findViewById(R.id.form_option_one);
+        int firstId = firstOption.getCheckedRadioButtonId();
+        RadioButton firstAnswer = findViewById(firstId);
+        firstAnswer.getText();
+        EditText firstReason = findViewById(R.id.form_reason_one);
+        String firstReasonText = firstReason.getText().toString();
 
-        RadioGroup catOption = findViewById(R.id.form_option_cat);
-        int catId = catOption.getCheckedRadioButtonId();
-        RadioButton catAnswer = findViewById(catId);
-        catAnswer.getText();
-        EditText catExplain = findViewById(R.id.form_explain_cat);
-        String catText = catExplain.getText().toString();
+        RadioGroup secondOption = findViewById(R.id.form_option_two);
+        int secondId = secondOption.getCheckedRadioButtonId();
+        RadioButton secondAnswer = findViewById(secondId);
+        secondAnswer.getText();
+        EditText secondReason = findViewById(R.id.form_reason_two);
+        String secondReasonText = secondReason.getText().toString();
 
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference();
         final FirebaseAuth mAuth = FirebaseAuth.getInstance();
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        ///subjects/reports/{user_uid}/reports/{report_name}/{report_timestamp}/{object_data}
-        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("deadUser").child(getCurrentTimeStamp()).setValue(deadAnswer.getText());
-        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("deadUser").child("reason").setValue(deadText);
-        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("catUser").child(getCurrentTimeStamp()).setValue(catAnswer.getText());
-        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("catUser").child("reason").setValue(catText);
+        ///subjects/reports/{user_uid}/report/{report_name}/{report_timestamp}/{object_data}
+
+        FirebaseHandler fbHandler = new FirebaseHandler();
+        fbHandler.getSubjectReport(currentUser.getUid()).child("question_one").child("question").setValue(getString(R.string.question_one));
+        fbHandler.getSubjectReport(currentUser.getUid()).child("question_one").child("answer").setValue(firstAnswer.getText());
+        fbHandler.getSubjectReport(currentUser.getUid()).child("question_one").child("reason").setValue(firstReasonText);
+        fbHandler.getSubjectReport(currentUser.getUid()).child("question_two").child("question").setValue(getString(R.string.question_two));
+        fbHandler.getSubjectReport(currentUser.getUid()).child("question_two").child("answer").setValue(secondAnswer.getText());
+        fbHandler.getSubjectReport(currentUser.getUid()).child("question_two").child("reason").setValue(secondReasonText);
 
         storeImageInFirebase(currentUser);
     }
@@ -127,7 +133,8 @@ public class MainActivity extends AppCompatActivity {
         uploadTask.addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
-                Toast.makeText(MainActivity.this, "Failed to upload image to Firebase", Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Image upload failed", e);
+                Snackbar.make(mUserImage, "Image upload failed: " + e.getLocalizedMessage(), Snackbar.LENGTH_LONG).show();
             }
         }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
@@ -137,22 +144,45 @@ public class MainActivity extends AppCompatActivity {
                 imageRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                     @Override
                     public void onSuccess(Uri uri) {
-                        FirebaseDatabase database = FirebaseDatabase.getInstance();
-                        DatabaseReference myRef = database.getReference();
-                        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("email").setValue(currentUser.getEmail());
-                        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("profileImage").setValue(uri.toString());
-                        myRef.child("subjects").child("reports").child(currentUser.getUid()).child("reports").child("timeStamp").setValue(getCurrentTimeStamp());
+                        FirebaseHandler fbh = new FirebaseHandler();
+                        fbh.getSubjectReport(currentUser.getUid()).child("email").setValue(currentUser.getEmail());
+                        fbh.getSubjectReport(currentUser.getUid()).child("profile_image").setValue(uri.toString());
+                        fbh.getSubjectReport(currentUser.getUid()).child("time_stamp").setValue(getCurrentTimeStamp());
 
                         Toast.makeText(MainActivity.this, "Data successfully uploaded", Toast.LENGTH_LONG).show();
+                        if(!isFinishing() && !isDestroyed()) {
+                            launchProfileScreen();
+                        }
                     }
                 }).addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "\"UploadTask::SuccessListener::onFailure");
+                        Log.e(TAG, "UploadTask::SuccessListener::onFailure", e);
                     }
                 });
             }
+        }).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                Log.d(TAG, "In OnCompleteListener");
+            }
+        }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                Log.d(TAG, "In OnProgressListener");
+            }
         });
+
+        if(!Utils.hasNetworkConnection(this)) {
+            launchProfileScreen();
+        }
+    }
+
+    private void launchProfileScreen() {
+        //Launch activity to view data
+        Intent i = new Intent(MainActivity.this, ProfileActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(i);
     }
 
     private String getCurrentTimeStamp() {
@@ -160,13 +190,11 @@ public class MainActivity extends AppCompatActivity {
         return dateFormat.format(new Date());
     }
 
-    private static final int READ_IMAGE = 234;
-
     private void checkImagePermission() {
-        if (Build.VERSION.SDK_INT > 23) {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 Log.d(TAG, "Requesting permission for READ_EXTERNAL_STORAGE");
-                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, READ_IMAGE);
+                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, READ_IMAGE_CODE);
             }
         }
 
@@ -175,11 +203,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == READ_IMAGE) {
+        if (requestCode == READ_IMAGE_CODE) {
             Log.d(TAG, "Permission: " + grantResults[0]);
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 loadImage();
             } else {
+                Log.e(TAG, "Failed to access local image library");
                 Toast.makeText(this, "Cannot access your image gallery", Toast.LENGTH_LONG).show();
             }
         } else {
@@ -187,18 +216,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static final int PICK_IMAGE = 342;
-
     private void loadImage() {
         Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(i, PICK_IMAGE);
+        startActivityForResult(i, PICK_IMAGE_CODE);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK && data != null) {
+        if (requestCode == PICK_IMAGE_CODE && resultCode == Activity.RESULT_OK && data != null) {
             Uri imageUri = data.getData();
             String[] filePath = new String[]{MediaStore.Images.Media.DATA};
             Cursor cursor = getContentResolver().query(imageUri, filePath, null, null, null);
@@ -218,36 +245,39 @@ public class MainActivity extends AppCompatActivity {
      * @return A string value of the email address, before the "@".
      */
     private String splitEmail(String email) {
+        if (email.isEmpty()) {
+            return email;
+        }
         String[] split = email.split("@");
         return split[0];
     }
 
     private void setupForm() {
-        RadioGroup deadGroup = findViewById(R.id.form_option_dead);
-        deadGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+        RadioGroup firstGroup = findViewById(R.id.form_option_one);
+        firstGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, int checkedId) {
                 switch (checkedId) {
-                    case R.id.form_option_dead_yes:
-                        findViewById(R.id.form_explain_dead).setVisibility(View.GONE);
+                    case R.id.form_option_one_yes:
+                        findViewById(R.id.form_reason_one).setVisibility(View.GONE);
                         break;
-                    case R.id.form_option_dead_no:
-                        findViewById(R.id.form_explain_dead).setVisibility(View.VISIBLE);
+                    case R.id.form_option_one_no:
+                        findViewById(R.id.form_reason_one).setVisibility(View.VISIBLE);
                         break;
                 }
             }
         });
 
-        RadioGroup catGroup = findViewById(R.id.form_option_cat);
+        RadioGroup catGroup = findViewById(R.id.form_option_two);
         catGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, int checkedId) {
                 switch (checkedId) {
-                    case R.id.form_option_cat_yes:
-                        findViewById(R.id.form_explain_cat).setVisibility(View.GONE);
+                    case R.id.form_option_two_yes:
+                        findViewById(R.id.form_reason_two).setVisibility(View.GONE);
                         break;
-                    case R.id.form_option_cat_no:
-                        findViewById(R.id.form_explain_cat).setVisibility(View.VISIBLE);
+                    case R.id.form_option_two_no:
+                        findViewById(R.id.form_reason_two).setVisibility(View.VISIBLE);
                         break;
                 }
             }
@@ -256,6 +286,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void logOut(View view) {
         FirebaseAuth.getInstance().signOut();
-        finish();
+        Intent i = new Intent(this, LoginActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
     }
 }

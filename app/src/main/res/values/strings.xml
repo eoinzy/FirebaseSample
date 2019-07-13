@@ -1,6 +1,6 @@
 <resources>
     <!--General-->
-    <string name="app_name">FirebaseSample</string>
+    <string name="app_name">Firebase Sample</string>
 
     <!--Login/Register-->
     <string name="title_activity_login">Sign in</string>
@@ -17,8 +17,11 @@
     <string name="click_to_sign_in">Already registered? Click here to <u>SIGN IN</u></string>
 
     <!--Main Screen-->
-    <string name="logout">Logout</string>>
+    <string name="logout">Logout</string>
+    <string name="question_one">Do you like cheese?</string>
+    <string name="question_two">Do you have a cat?</string>
 
-
+    <!-- Profile Screen -->
+    <string name="action_edit_text">Edit Form</string>
 
 </resources>
